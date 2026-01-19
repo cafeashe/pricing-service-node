@@ -107,6 +107,4 @@ http://localhost:3000
 
 ---
 
-## Autor
 
-Proyecto desarrollado con fines educativos y de práctica profesional en desarrollo backend con Node.js.
