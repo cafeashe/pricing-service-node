@@ -107,4 +107,16 @@ http://localhost:3000
 
 ---
 
+## Documentación OpenAPI
+
+Este proyecto incluye una especificación OpenAPI que documenta los endpoints del servicio, sus request bodies y respuestas.
+
+Archivo:
+- openapi.yaml
+
+La especificación puede ser utilizada para:
+- Comprender el contrato de la API
+- Integrar otros servicios
+- Generar documentación o clientes automáticamente
+
 
