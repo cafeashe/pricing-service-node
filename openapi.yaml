@@ -1,0 +1,289 @@
+openapi: 3.0.3
+info:
+  title: Pricing Service API
+  description: Microservicio de pricing y checkout desarrollado en Node.js con Express.
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:3000
+    description: Entorno local
+
+tags:
+  - name: Health
+    description: Verificación del estado del servicio
+  - name: Checkout
+    description: Operaciones de cotización y confirmación de compras
+
+paths:
+  /health:
+    get:
+      tags:
+        - Health
+      summary: Health check del servicio
+      responses:
+        "200":
+          description: Servicio operativo
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+                  service:
+                    type: string
+                    example: pricing-service
+                  timestamp:
+                    type: string
+                    example: "2026-01-19T03:45:23.317Z"
+
+  /checkout/quote:
+    post:
+      tags:
+        - Checkout
+      summary: Cotizar compra
+      description: Calcula subtotal, descuentos y total sin crear la orden.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/QuoteRequest"
+      responses:
+        "200":
+          description: Cotización calculada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/QuoteResponse"
+        "400":
+          description: Solicitud inválida
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Stock insuficiente
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StockConflictResponse"
+
+  /checkout/confirm:
+    post:
+      tags:
+        - Checkout
+      summary: Confirmar compra
+      description: Confirma la compra y crea una orden.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ConfirmRequest"
+      responses:
+        "201":
+          description: Orden confirmada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Order"
+        "400":
+          description: Solicitud inválida
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Stock insuficiente
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StockConflictResponse"
+
+  /checkout/orders:
+    get:
+      tags:
+        - Checkout
+      summary: Listar órdenes
+      description: Devuelve las órdenes confirmadas.
+      responses:
+        "200":
+          description: Lista de órdenes
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Order"
+
+components:
+  schemas:
+    QuoteItem:
+      type: object
+      required:
+        - sku
+        - cantidad
+      properties:
+        sku:
+          type: string
+          example: "JEANS-AZUL-32"
+        cantidad:
+          type: integer
+          minimum: 1
+          example: 1
+
+    QuoteRequest:
+      type: object
+      required:
+        - rutCliente
+        - items
+      properties:
+        rutCliente:
+          type: string
+          example: "18.123.456-7"
+        items:
+          type: array
+          minItems: 1
+          items:
+            $ref: "#/components/schemas/QuoteItem"
+        cupon:
+          type: string
+          nullable: true
+          example: "PRIMERA10"
+
+    Descuento:
+      type: object
+      properties:
+        tipo:
+          type: string
+          example: "cliente"
+        detalle:
+          type: string
+          example: "Cliente GOLD -5%"
+        monto:
+          type: integer
+          example: 1250
+
+    QuoteResponse:
+      type: object
+      properties:
+        rutCliente:
+          type: string
+          example: "18.123.456-7"
+        subtotal:
+          type: integer
+          example: 24990
+        descuentos:
+          type: array
+          items:
+            $ref: "#/components/schemas/Descuento"
+        total:
+          type: integer
+          example: 21366
+        moneda:
+          type: string
+          example: "CLP"
+
+    ConfirmRequest:
+      type: object
+      required:
+        - rutCliente
+        - items
+      properties:
+        rutCliente:
+          type: string
+          example: "18.123.456-7"
+        items:
+          type: array
+          minItems: 1
+          items:
+            $ref: "#/components/schemas/QuoteItem"
+        cupon:
+          type: string
+          nullable: true
+          example: "PRIMERA10"
+
+    OrderItem:
+      type: object
+      properties:
+        sku:
+          type: string
+          example: "JEANS-AZUL-32"
+        nombre:
+          type: string
+          example: "Jeans Azul 32"
+        precio:
+          type: integer
+          example: 24990
+        cantidad:
+          type: integer
+          example: 1
+
+    Order:
+      type: object
+      properties:
+        orderId:
+          type: string
+          example: "ORD-1768795625605"
+        createdAt:
+          type: string
+          example: "2026-01-19T04:07:05.605Z"
+        customer:
+          type: object
+          properties:
+            rut:
+              type: string
+              example: "18.123.456-7"
+            categoria:
+              type: string
+              example: "GOLD"
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/OrderItem"
+        subtotal:
+          type: integer
+          example: 24990
+        descuentos:
+          type: array
+          items:
+            $ref: "#/components/schemas/Descuento"
+        total:
+          type: integer
+          example: 21366
+        moneda:
+          type: string
+          example: "CLP"
+        estado:
+          type: string
+          example: "CONFIRMADA"
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+          example: "Solicitud inválida"
+
+    StockConflictResponse:
+      type: object
+      properties:
+        error:
+          type: string
+          example: "Stock insuficiente para uno o más productos"
+        sinStock:
+          type: array
+          items:
+            type: object
+            properties:
+              sku:
+                type: string
+                example: "ZAPATILLA-BLANCA-39"
+              stock:
+                type: integer
+                example: 0
+              solicitado:
+                type: integer
+                example: 1
